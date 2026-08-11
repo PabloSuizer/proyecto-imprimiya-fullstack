@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { config } from './config.js';
 import { userRouter } from './src/api/user_router.js';
+import { authRouter } from './src/api/auth_router.js';
 import { checkAuthorizationToken } from './src/middlewares/auth_middleware.js';
 
 const app = express();
@@ -12,6 +13,7 @@ app.use(checkAuthorizationToken);
 
 // Registro de Rutas
 app.use('/users', userRouter);
+app.use('/auth', authRouter);
 
 // Middleware de Manejo de Errores Global (Siempre al final)
 app.use((err, req, res, next) => {

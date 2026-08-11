@@ -2,6 +2,10 @@ import { User } from '../mongo-db/user_mongo.js';
 import bcrypt from 'bcrypt';
 
 export const UserService = {
+  async getAll() {
+    return await User.find({}, { password: 0 }); // Excluir la contraseña por seguridad
+  },
+
   async getByUsername(username) {
     return await User.findOne({ username });
   },
