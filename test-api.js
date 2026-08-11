@@ -65,6 +65,118 @@ async function runTests() {
       console.error('❌ Error en Prueba 3:', getData);
     }
 
+    // 4. Crear un nuevo usuario y cambiarle el rol (Flujo real de un Super Admin)
+    console.log('\n➤ PRUEBA 4: Registrando un nuevo usuario y ascendiéndolo a "admin"...');
+    
+    // 4a. Registrar nuevo usuario (nace siendo 'user' obligatoriamente)
+    await fetch(`${baseUrl}/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'nuevo_empleado', password: '123' })
+    });
+
+    // 4b. Super Admin usa su token para cambiarle el rol a 'admin'
+    const roleResponse = await fetch(`${baseUrl}/users/nuevo_empleado/role`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` 
+      },
+      body: JSON.stringify({ role: 'admin' })
+    });
+
+    const roleData = await roleResponse.json();
+    if (roleResponse.ok) {
+      console.log(`✅ Prueba 4 exitosa. El empleado ahora tiene el rol: ${roleData.role}`);
+    } else {
+      console.error('❌ Error en Prueba 4 (¿Olvidaste cambiarte a superadmin en Compass?):', roleData);
+    }
+
+    // ==========================================
+    // PRUEBAS DEL CRUD DE IMPRENTAS
+    // ==========================================
+
+    // 5. Crear una imprenta (Alta)
+    console.log('\n➤ PRUEBA 5: Creando una nueva imprenta...');
+    const createImprentaRes = await fetch(`${baseUrl}/imprentas`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` 
+      },
+      body: JSON.stringify({
+        name: 'Imprenta Central',
+        address: 'Av. Corrientes 1234, Buenos Aires',
+        phone: '011-4567-8900'
+      })
+    });
+
+    const createImprentaData = await createImprentaRes.json();
+    let imprentaId = '';
+    if (createImprentaRes.ok) {
+      imprentaId = createImprentaData._id;
+      console.log('✅ Prueba 5 exitosa. Imprenta creada:', createImprentaData.name);
+    } else if (createImprentaData.error === 'Ya existe una imprenta con ese nombre') {
+      console.log('✅ Prueba 5 exitosa. (La imprenta ya existía).');
+      // Obtener el ID de la existente para las siguientes pruebas
+      const listRes = await fetch(`${baseUrl}/imprentas`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const listData = await listRes.json();
+      const found = listData.find(i => i.name === 'Imprenta Central');
+      if (found) imprentaId = found._id;
+    } else {
+      console.error('❌ Error en Prueba 5:', createImprentaData);
+    }
+
+    // 6. Listar todas las imprentas (Lectura)
+    console.log('\n➤ PRUEBA 6: Listando todas las imprentas...');
+    const listImprentasRes = await fetch(`${baseUrl}/imprentas`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const listImprentasData = await listImprentasRes.json();
+    if (listImprentasRes.ok) {
+      console.log(`✅ Prueba 6 exitosa. Imprentas encontradas: ${listImprentasData.length}`);
+      listImprentasData.forEach(i => console.log(`   - ${i.name} (${i.address})`));
+    } else {
+      console.error('❌ Error en Prueba 6:', listImprentasData);
+    }
+
+    // 7. Modificar una imprenta (Modificación)
+    if (imprentaId) {
+      console.log('\n➤ PRUEBA 7: Modificando la dirección de la imprenta...');
+      const updateRes = await fetch(`${baseUrl}/imprentas/${imprentaId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ address: 'Av. Santa Fe 5678, Buenos Aires' })
+      });
+
+      const updateData = await updateRes.json();
+      if (updateRes.ok) {
+        console.log(`✅ Prueba 7 exitosa. Nueva dirección: ${updateData.address}`);
+      } else {
+        console.error('❌ Error en Prueba 7:', updateData);
+      }
+
+      // 8. Eliminar la imprenta (Baja)
+      console.log('\n➤ PRUEBA 8: Eliminando la imprenta...');
+      const deleteRes = await fetch(`${baseUrl}/imprentas/${imprentaId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const deleteData = await deleteRes.json();
+      if (deleteRes.ok) {
+        console.log('✅ Prueba 8 exitosa.', deleteData.message);
+      } else {
+        console.error('❌ Error en Prueba 8:', deleteData);
+      }
+    }
+
     console.log('\n--- PRUEBAS FINALIZADAS CON ÉXITO ---');
     console.log('¡Tu arquitectura, base de datos, y seguridad están funcionando perfectamente!');
 

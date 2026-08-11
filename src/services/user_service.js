@@ -10,6 +10,10 @@ export const UserService = {
     return await User.findOne({ username });
   },
 
+  async updateRole(username, newRole) {
+    return await User.findOneAndUpdate({ username }, { role: newRole }, { new: true });
+  },
+
   async add(userData) {
     // Cifrar la contraseña antes de guardar
     const saltRounds = 10;
