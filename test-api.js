@@ -12,14 +12,16 @@ async function runTests() {
     console.log('➤ PRUEBA 1: Intentando registrar un usuario administrador...');
     const registerResponse = await fetch(`${baseUrl}/users`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         username: 'admin_test',
         password: 'password123',
         role: 'admin'
       })
     });
-    
+
     const registerData = await registerResponse.json();
     if (registerResponse.ok || registerData.error === 'El nombre de usuario ya existe') {
       console.log('✅ Prueba 1 exitosa. (El usuario se creó o ya existía).');
@@ -67,7 +69,7 @@ async function runTests() {
 
     // 4. Crear un nuevo usuario y cambiarle el rol (Flujo real de un Super Admin)
     console.log('\n➤ PRUEBA 4: Registrando un nuevo usuario y ascendiéndolo a "admin"...');
-    
+
     // 4a. Registrar nuevo usuario (nace siendo 'user' obligatoriamente)
     await fetch(`${baseUrl}/users`, {
       method: 'POST',
@@ -78,9 +80,9 @@ async function runTests() {
     // 4b. Super Admin usa su token para cambiarle el rol a 'admin'
     const roleResponse = await fetch(`${baseUrl}/users/nuevo_empleado/role`, {
       method: 'PATCH',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` 
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ role: 'admin' })
     });
@@ -100,9 +102,9 @@ async function runTests() {
     console.log('\n➤ PRUEBA 5: Creando una nueva imprenta...');
     const createImprentaRes = await fetch(`${baseUrl}/imprentas`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` 
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         name: 'Imprenta Central',
@@ -148,9 +150,9 @@ async function runTests() {
       console.log('\n➤ PRUEBA 7: Modificando la dirección de la imprenta...');
       const updateRes = await fetch(`${baseUrl}/imprentas/${imprentaId}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ address: 'Av. Santa Fe 5678, Buenos Aires' })
       });
