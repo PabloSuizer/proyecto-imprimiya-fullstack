@@ -16,9 +16,10 @@ export const LoginService = {
 
     const session = new Session({
       token,
-      username: user.username
+      username: user.username,
+      role: user.role
     });
-    
+
     return await session.save();
   }
 };

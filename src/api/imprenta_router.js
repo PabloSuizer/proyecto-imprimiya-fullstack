@@ -4,8 +4,8 @@ import { checkRole } from '../middlewares/role_middleware.js';
 
 const router = express.Router();
 
-// GET /imprentas - Listar todas (cualquier usuario autenticado)
-router.get('/', checkRole(['user', 'admin', 'superadmin']), async (req, res, next) => {
+// GET /imprentas - Listar todas (Usuario o Admin)
+router.get('/', checkRole(['user', 'admin']), async (req, res, next) => {
   try {
     const imprentas = await ImprentaService.getAll();
     res.status(200).json(imprentas);
@@ -14,8 +14,8 @@ router.get('/', checkRole(['user', 'admin', 'superadmin']), async (req, res, nex
   }
 });
 
-// POST /imprentas - Crear nueva (Solo Super Admin)
-router.post('/', checkRole(['superadmin']), async (req, res, next) => {
+// POST /imprentas - Crear nueva (Usuario o Admin)
+router.post('/', checkRole(['user', 'admin']), async (req, res, next) => {
   try {
     const { name, address, phone } = req.body;
     if (!name || !address) {
@@ -32,8 +32,8 @@ router.post('/', checkRole(['superadmin']), async (req, res, next) => {
   }
 });
 
-// PUT /imprentas/:id - Modificar (Solo Super Admin)
-router.put('/:id', checkRole(['superadmin']), async (req, res, next) => {
+// PUT /imprentas/:id - Modificar (Usuario o Admin)
+router.put('/:id', checkRole(['user', 'admin']), async (req, res, next) => {
   try {
     const updated = await ImprentaService.update(req.params.id, req.body);
     if (!updated) {
@@ -45,8 +45,8 @@ router.put('/:id', checkRole(['superadmin']), async (req, res, next) => {
   }
 });
 
-// DELETE /imprentas/:id - Eliminar (Solo Super Admin)
-router.delete('/:id', checkRole(['superadmin']), async (req, res, next) => {
+// DELETE /imprentas/:id - Eliminar (Usuario o Admin)
+router.delete('/:id', checkRole(['user', 'admin']), async (req, res, next) => {
   try {
     const deleted = await ImprentaService.delete(req.params.id);
     if (!deleted) {

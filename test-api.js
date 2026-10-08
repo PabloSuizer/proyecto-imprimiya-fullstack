@@ -3,22 +3,42 @@
 
 async function runTests() {
   const baseUrl = 'http://localhost:3000';
-  let token = '';
 
   console.log('--- INICIANDO PRUEBAS AUTOMÁTICAS ---\n');
 
   try {
-    // 1. Crear un usuario administrador
-    console.log('➤ PRUEBA 1: Intentando registrar un usuario administrador...');
+    // 0. Inicio de sesión del Administrador (Admin por defecto sembrado)
+    console.log('➤ PRUEBA 0: Iniciando sesión como Administrador (admin_test)...');
+    const adminLoginRaw = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'admin_test',
+        password: 'password123'
+      })
+    });
+
+    const adminLoginData = await adminLoginRaw.json();
+    if (!adminLoginRaw.ok || !adminLoginData.token) {
+      console.error('❌ Error en Prueba 0: No se pudo iniciar sesión como admin:', adminLoginData);
+      return;
+    }
+
+    const adminToken = adminLoginData.token;
+    console.log('✅ Prueba 0 exitosa. Admin autenticado correctamente.');
+
+    // 1. Admin le da el alta a un usuario estándar ('user')
+    console.log('\n➤ PRUEBA 1: Admin registrando un nuevo usuario con rol "user"...');
     const registerResponse = await fetch(`${baseUrl}/users`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify({
-        username: 'admin_test',
+        username: 'nuevo_empleado',
         password: 'password123',
-        role: 'admin'
+        role: 'user'
       })
     });
 
@@ -29,82 +49,55 @@ async function runTests() {
       console.error('❌ Error en Prueba 1:', registerData);
     }
 
-    // 2. Iniciar sesión para obtener el token
-    console.log('\n➤ PRUEBA 2: Iniciando sesión para obtener el Token de acceso...');
-    const loginResponse = await fetch(`${baseUrl}/auth/login`, {
+    // 2. El usuario ('nuevo_empleado') inicia sesión para obtener su token
+    console.log('\n➤ PRUEBA 2: Usuario iniciando sesión para obtener su Token de acceso...');
+    const userLoginResponse = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: 'admin_test',
+        username: 'nuevo_empleado',
         password: 'password123'
       })
     });
 
-    const loginData = await loginResponse.json();
-    if (loginResponse.ok && loginData.token) {
-      token = loginData.token;
-      console.log('✅ Prueba 2 exitosa. ¡Token obtenido correctamente!');
-      console.log(`   Token (abreviado): ${token.substring(0, 15)}...`);
+    const userLoginData = await userLoginResponse.json();
+    const empleadoToken = userLoginData.token;
+
+    if (userLoginResponse.ok && userLoginData.token) {
+      console.log('✅ Prueba 2 exitosa. ¡Token de usuario obtenido correctamente!');
+      console.log(`   Token (abreviado): ${empleadoToken.substring(0, 15)}...`);
     } else {
-      console.error('❌ Error en Prueba 2. No se pudo iniciar sesión:', loginData);
-      return; // Si no hay token, no podemos continuar
+      console.error('❌ Error en Prueba 2. No se pudo iniciar sesión como usuario:', userLoginData);
+      return;
     }
 
-    // 3. Probar una ruta protegida con el token
-    console.log('\n➤ PRUEBA 3: Pidiendo la lista de usuarios usando el Token...');
-    const getResponse = await fetch(`${baseUrl}/users`, {
+    // 3. Admin consulta la lista de usuarios
+    console.log('\n➤ PRUEBA 3: Admin pidiendo la lista completa de usuarios...');
+    const getUsersResponse = await fetch(`${baseUrl}/users`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}` // Aquí inyectamos el token de seguridad
+        'Authorization': `Bearer ${adminToken}`
       }
     });
 
-    const getData = await getResponse.json();
-    if (getResponse.ok) {
-      console.log('✅ Prueba 3 exitosa. Acceso permitido.');
-      console.log('   Usuarios en la base de datos:', getData);
+    const getUsersData = await getUsersResponse.json();
+    if (getUsersResponse.ok) {
+      console.log('✅ Prueba 3 exitosa. Usuarios en la base de datos:', getUsersData);
     } else {
-      console.error('❌ Error en Prueba 3:', getData);
-    }
-
-    // 4. Crear un nuevo usuario y cambiarle el rol (Flujo real de un Super Admin)
-    console.log('\n➤ PRUEBA 4: Registrando un nuevo usuario y ascendiéndolo a "admin"...');
-
-    // 4a. Registrar nuevo usuario (nace siendo 'user' obligatoriamente)
-    await fetch(`${baseUrl}/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'nuevo_empleado', password: '123' })
-    });
-
-    // 4b. Super Admin usa su token para cambiarle el rol a 'admin'
-    const roleResponse = await fetch(`${baseUrl}/users/nuevo_empleado/role`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ role: 'admin' })
-    });
-
-    const roleData = await roleResponse.json();
-    if (roleResponse.ok) {
-      console.log(`✅ Prueba 4 exitosa. El empleado ahora tiene el rol: ${roleData.role}`);
-    } else {
-      console.error('❌ Error en Prueba 4 (¿Olvidaste cambiarte a superadmin en Compass?):', roleData);
+      console.error('❌ Error en Prueba 3:', getUsersData);
     }
 
     // ==========================================
-    // PRUEBAS DEL CRUD DE IMPRENTAS
+    // PRUEBAS DEL CRUD DE IMPRENTAS (Realizadas por el usuario 'user')
     // ==========================================
 
-    // 5. Crear una imprenta (Alta)
-    console.log('\n➤ PRUEBA 5: Creando una nueva imprenta...');
+    // 4. Usuario crea una imprenta (Alta)
+    console.log('\n➤ PRUEBA 4: Usuario creando una nueva imprenta...');
     const createImprentaRes = await fetch(`${baseUrl}/imprentas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${empleadoToken}`
       },
       body: JSON.stringify({
         name: 'Imprenta Central',
@@ -115,72 +108,72 @@ async function runTests() {
 
     const createImprentaData = await createImprentaRes.json();
     let imprentaId = '';
+
     if (createImprentaRes.ok) {
       imprentaId = createImprentaData._id;
-      console.log('✅ Prueba 5 exitosa. Imprenta creada:', createImprentaData.name);
+      console.log('✅ Prueba 4 exitosa. Imprenta creada:', createImprentaData.name);
     } else if (createImprentaData.error === 'Ya existe una imprenta con ese nombre') {
-      console.log('✅ Prueba 5 exitosa. (La imprenta ya existía).');
-      // Obtener el ID de la existente para las siguientes pruebas
+      console.log('✅ Prueba 4 exitosa. (La imprenta ya existía).');
       const listRes = await fetch(`${baseUrl}/imprentas`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${empleadoToken}` }
       });
       const listData = await listRes.json();
       const found = listData.find(i => i.name === 'Imprenta Central');
       if (found) imprentaId = found._id;
     } else {
-      console.error('❌ Error en Prueba 5:', createImprentaData);
+      console.error('❌ Error en Prueba 4:', createImprentaData);
     }
 
-    // 6. Listar todas las imprentas (Lectura)
-    console.log('\n➤ PRUEBA 6: Listando todas las imprentas...');
+    // 5. Usuario lista todas las imprentas (Lectura)
+    console.log('\n➤ PRUEBA 5: Usuario listando todas las imprentas...');
     const listImprentasRes = await fetch(`${baseUrl}/imprentas`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${empleadoToken}` }
     });
 
     const listImprentasData = await listImprentasRes.json();
     if (listImprentasRes.ok) {
-      console.log(`✅ Prueba 6 exitosa. Imprentas encontradas: ${listImprentasData.length}`);
+      console.log(`✅ Prueba 5 exitosa. Imprentas encontradas: ${listImprentasData.length}`);
       listImprentasData.forEach(i => console.log(`   - ${i.name} (${i.address})`));
     } else {
-      console.error('❌ Error en Prueba 6:', listImprentasData);
+      console.error('❌ Error en Prueba 5:', listImprentasData);
     }
 
-    // 7. Modificar una imprenta (Modificación)
+    // 6. Usuario modifica una imprenta (Modificación)
     if (imprentaId) {
-      console.log('\n➤ PRUEBA 7: Modificando la dirección de la imprenta...');
+      console.log('\n➤ PRUEBA 6: Usuario modificando la dirección de la imprenta...');
       const updateRes = await fetch(`${baseUrl}/imprentas/${imprentaId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${empleadoToken}`
         },
         body: JSON.stringify({ address: 'Av. Santa Fe 5678, Buenos Aires' })
       });
 
       const updateData = await updateRes.json();
       if (updateRes.ok) {
-        console.log(`✅ Prueba 7 exitosa. Nueva dirección: ${updateData.address}`);
+        console.log(`✅ Prueba 6 exitosa. Nueva dirección: ${updateData.address}`);
       } else {
-        console.error('❌ Error en Prueba 7:', updateData);
+        console.error('❌ Error en Prueba 6:', updateData);
       }
 
-      // 8. Eliminar la imprenta (Baja)
-      console.log('\n➤ PRUEBA 8: Eliminando la imprenta...');
+      // 7. Usuario elimina la imprenta (Baja)
+      console.log('\n➤ PRUEBA 7: Usuario eliminando la imprenta...');
       const deleteRes = await fetch(`${baseUrl}/imprentas/${imprentaId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${empleadoToken}` }
       });
 
       const deleteData = await deleteRes.json();
       if (deleteRes.ok) {
-        console.log('✅ Prueba 8 exitosa.', deleteData.message);
+        console.log('✅ Prueba 7 exitosa.', deleteData.message);
       } else {
-        console.error('❌ Error en Prueba 8:', deleteData);
+        console.error('❌ Error en Prueba 7:', deleteData);
       }
     }
 
     console.log('\n--- PRUEBAS FINALIZADAS CON ÉXITO ---');
-    console.log('¡Tu arquitectura, base de datos, y seguridad están funcionando perfectamente!');
+    console.log('¡Tu arquitectura, autenticación por roles y seguridad están funcionando perfectamente!');
 
   } catch (error) {
     console.error('\n❌ ERROR CRÍTICO DE CONEXIÓN:');

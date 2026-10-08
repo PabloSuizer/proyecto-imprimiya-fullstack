@@ -6,6 +6,8 @@ import { authRouter } from './src/api/auth_router.js';
 import { imprentaRouter } from './src/api/imprenta_router.js';
 import { checkAuthorizationToken } from './src/middlewares/auth_middleware.js';
 
+import { UserService } from './src/services/user_service.js';
+
 const app = express();
 
 // Middlewares de Aplicación
@@ -28,6 +30,8 @@ async function startServer() {
   try {
     await mongoose.connect(config.dbConnection);
     console.log('📦 Conexión exitosa a la base de datos MongoDB.');
+
+    await UserService.seedInitialAdmin();
     
     app.listen(config.port, () => {
       console.log(`🚀 Servidor ejecutándose correctamente en el puerto ${config.port}`);

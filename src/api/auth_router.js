@@ -12,9 +12,10 @@ router.post('/login', async (req, res, next) => {
     }
 
     const session = await LoginService.login(username, password);
-    res.status(200).json({ 
-      message: 'Login exitoso', 
-      token: session.token 
+    res.status(200).json({
+      message: 'Login exitoso',
+      token: session.token,
+      role: session.role,
     });
   } catch (error) {
     if (error.message === 'Usuario no encontrado' || error.message === 'Contraseña incorrecta') {
